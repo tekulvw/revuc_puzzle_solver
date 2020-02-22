@@ -14,18 +14,18 @@ def get_img(fname):
 def remove_bg(img):
     cv.imshow("orig", resize(img))
 
-    gray = cv.equalizeHist(cv.cvtColor(img, cv.COLOR_BGR2GRAY))
-    cv.imshow("gray", resize(gray))
-    thresh = cv.adaptiveThreshold(gray, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 2)
+    hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
+    cv.imshow("hue", resize(hsv[:, :, 0]))
+    cv.imshow("sat", resize(hsv[:, :, 1]))
+    cv.imshow("val", resize(hsv[:, :, 2]))
+
+    thresh = cv.adaptiveThreshold(hsv[:, :, 1], 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY_INV, 11, 5)
     cv.imshow("thresh", resize(thresh))
 
-    blurred = cv.GaussianBlur(thresh, (5, 5), 7)
-    cv.imshow("blurred", resize(blurred))
+    median = cv.medianBlur(thresh, 5)
+    cv.imshow("median", resize(median))
 
-    denoise = cv.fastNlMeansDenoisingColored(img, None, 10, 10, 7, 21)
-    cv.imshow("denoise", resize(denoise))
-
-    return gray
+    return hsv
 
 
 def main():
