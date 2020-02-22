@@ -1,4 +1,10 @@
 import cv2 as cv
+import numpy as np
+from matplotlib import pyplot as plt
+
+
+def resize(img):
+    return cv.resize(img, (1920, 1080))
 
 
 def get_img(fname):
@@ -6,12 +12,20 @@ def get_img(fname):
 
 
 def remove_bg(img):
-    # Convert to hsv and equalize
-    hsv = cv.cvtColor(img, cv.COLOR_RGB2HSV)
-    hsv[:, :, 0] = cv.equalizeHist(hsv[:, :, 0])
-    hsv[:, :, 2] = cv.equalizeHist(hsv[:, :, 2])
+    cv.imshow("orig", resize(img))
 
-    return hsv
+    gray = cv.equalizeHist(cv.cvtColor(img, cv.COLOR_BGR2GRAY))
+    cv.imshow("gray", resize(gray))
+    thresh = cv.adaptiveThreshold(gray, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 2)
+    cv.imshow("thresh", resize(thresh))
+
+    blurred = cv.GaussianBlur(thresh, (5, 5), 7)
+    cv.imshow("blurred", resize(blurred))
+
+    denoise = cv.fastNlMeansDenoisingColored(img, None, 10, 10, 7, 21)
+    cv.imshow("denoise", resize(denoise))
+
+    return gray
 
 
 def main():
