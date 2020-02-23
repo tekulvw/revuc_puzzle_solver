@@ -30,28 +30,13 @@ def remove_bg(img):
 
     contours, he = cv.findContours(mask, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
 
-    res = cv.drawContours(res, contours, -1, (0, 255, 0), 3)
-
     # Display the resulting frame
     # cv.imshow('frame', resize(cv.cvtColor(hsv, cv.COLOR_HSV2BGR)))
     # cv.imshow('hsv', resize(hsv))
     # cv.imshow('mask', resize(mask))
     # cv.imshow('res', resize(res))
 
-    polygons = []
-    for cnt in contours:
-        try:
-            p = Polygon([p[0] for p in cnt])
-        except ValueError:
-            pass
-        else:
-            polygons.append(p)
-
-    polygons = sorted(polygons, key=lambda p: p.area, reverse=True)[:4]
-    for p in polygons:
-        plt.plot(*p.exterior.xy)
-
-    plt.show()
+    pieces = sorted(contours, key=lambda c: cv.contourArea(c), reverse=True)[:4]
 
     return hsv
 
