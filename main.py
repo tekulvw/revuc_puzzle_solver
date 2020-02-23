@@ -24,28 +24,45 @@ def remove_bg(img):
     upper_gray = np.array([20, 70, 255])
 
     mask = cv.inRange(hsv, lower_gray, upper_gray)
-    mask = cv.medianBlur(mask, 7)
+    mask = cv.medianBlur(mask, 15)
 
     res = cv.bitwise_and(img, img, mask=mask)
 
     contours, he = cv.findContours(mask, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
 
     # Display the resulting frame
-    # cv.imshow('frame', resize(cv.cvtColor(hsv, cv.COLOR_HSV2BGR)))
-    # cv.imshow('hsv', resize(hsv))
-    # cv.imshow('mask', resize(mask))
-    # cv.imshow('res', resize(res))
+    cv.imshow('frame', resize(cv.cvtColor(hsv, cv.COLOR_HSV2BGR)))
+    cv.imshow('hsv', resize(hsv))
+    cv.imshow('mask', resize(mask))
+    cv.imshow('res', resize(res))
+
 
     pieces = sorted(contours, key=lambda c: cv.contourArea(c), reverse=True)[:4]
 
-    return hsv
+
+
+    #for p in pieces:
+        #cv.drawContours(res,p,-1,( np.random.randint(0,255), np.random.randint(0,255), np.random.randint(0,255)),10)
+
+    cv.imshow('new', resize(res))
+
+    PreCorner = cv.cvtColor(res, cv.COLOR_RGB2GRAY)
+
+    corner = cv.cornerHarris(PreCorner,31,11,0.08)
+    #result is dilated for marking the corners, not important
+    #dst = cv.dilate(dst,None)
+
+    cv.imshow('corner', resize(corner))
+
+
+    return corner
 
 
 def main():
     for img_path in (Path.cwd() / 'imgs' / 'flipped').glob("*.jpg"):
         img = cv.imread(str(img_path))
         no_bg_img = remove_bg(img)
-
+        cv.imshow
         break
 
         # cv.imshow(f"no_bg '{img_path.stem}'", cv.resize(no_bg_img, (1920, 1080)))
