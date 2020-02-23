@@ -1,6 +1,9 @@
 import cv2 as cv
 import numpy as np
 from pathlib import Path
+from matplotlib import pyplot as plt
+from shapely.geometry import Polygon, Point
+from shapely import affinity
 
 
 def resize(img):
@@ -70,15 +73,51 @@ def get_corners(piece_contour, length=5, extrema_limit=0.5):
     return extrema_points
 
 
+def match_polys(polygons):
+    for i, poly in enumerate(polygons):
+        for j, other_poly in enumerate(polygons):
+            if i == j:
+                continue
+
+            match_poly(poly, other_poly)
+
+
+def match_poly(first: Polygon, second: Polygon):
+    for point in first.exterior.coords:
+        point = np.array(point)
+
+        for other_point in second.exterior.coords:
+            other_point = np.array(other_point)
+            point_diff = point - other_point
+
+            shifted = affinity.translate(second, xoff=point_diff[0], yoff=point_diff[1])
+            match_rotation(first, shifted, point)
+
+
+def match_rotation(first, second, origin):
+    for i in np.arange(0, 360, 0.1):
+        rotated = affinity.rotate(second, i, origin=origin)
+        overlap_area = first.intersection(second).area
+        px_within_10 = 0
+        for first_px in list(zip(*first.exterior.coords.xy))[::50]:
+            for rot_px in list(zip(*rotated.exterior.coords.xy))[::50]:
+                if np.linalg.norm(np.array(first_px) - np.array(rot_px)) < 10:
+                    px_within_10 += 1
+
+        if i % 10 == 0:
+            plt.plot(*first.exterior.coords.xy)
+            plt.plot(*rotated.exterior.coords.xy)
+            plt.show()
+            continue
+
+
 def main():
     for img_path in (Path.cwd() / 'imgs' / 'flipped').glob("*.jpg"):
         img = cv.imread(str(img_path))
         pieces = get_pieces(img)
-        corners = [c for p in pieces for c in get_corners(p, length=10, extrema_limit=0.1)]
-
-        cv.drawContours(img, [cnt for p in pieces for cnt in p], -1, (255, 0, 0), thickness=2)
-        cv.drawContours(img, corners, -1, (0, 255, 0), thickness=20)
-        cv.imshow('corners?', resize(img))
+        shells = [p[:, 0] for p in pieces]
+        polygons = [Polygon(s) for s in shells]
+        match_polys(polygons)
 
         break
 
