@@ -62,7 +62,7 @@ def get_pegs(img):
     # cv.imshow('mask', resize(mask))
     # cv.imshow('res', resize(res))
 
-    circles = cv.HoughCircles(h,cv.HOUGH_GRADIENT,1,20, param1=50,param2=30,minRadius=0,maxRadius=0)
+    circles = cv.HoughCircles(h, cv.HOUGH_GRADIENT, 1, 20, param1=50, param2=30, minRadius=0, maxRadius=0)
 
     return circles
 
@@ -76,7 +76,7 @@ def get_corners(piece_contour, length=5, extrema_limit=0.5):
         diff = (next_pt - point)[0]
         angle = np.arctan2(diff[1], diff[0])
         if angle < 0:
-            angle += 2*np.pi
+            angle += 2 * np.pi
         slopes.append(angle)
 
     normalized_angles = []
@@ -97,18 +97,18 @@ def get_corners(piece_contour, length=5, extrema_limit=0.5):
     # plt.plot(normalized_angles)
     # plt.show()
 
-    #return find_parallelagram(extrema_points)
+    # return find_parallelagram(extrema_points)
 
-    #BENS CURRENT LINE:
+    # BENS CURRENT LINE:
 
-    return find_rectangular_polygon(extrema_points)
-
+    # return find_rectangular_polygon(extrema_points)
 
     # print(len(extrema_points))
-    # return extrema_points
+    return extrema_points
+
 
 def polygon_area(corners):
-    n = len(corners) # of corners
+    n = len(corners)  # of corners
     area = 0.0
     for i in range(n):
         j = (i + 1) % n
@@ -116,6 +116,7 @@ def polygon_area(corners):
         area -= corners[j][0] * corners[i][1]
     area = abs(area) / 2.0
     return area
+
 
 def get_angle(a, b, c):
     a = np.array(a)
@@ -128,6 +129,7 @@ def get_angle(a, b, c):
     angle = np.arccos(cosine_angle)
 
     return np.degrees(angle)
+
 
 def check_right_angle(corners, right_angle_limit):
     angle = 0
@@ -148,13 +150,14 @@ def check_right_angle(corners, right_angle_limit):
             angle = 0
     return angle != 0
 
-def find_rectangular_polygon(points, right_angle_limit = 5):
+
+def find_rectangular_polygon(points, right_angle_limit=5, skip=3):
     max_area = 0
     max_corners = []
     for c1 in range(len(points)):
-        for c2 in range(c1 + 1, len(points) - 1, 3):
-            for c3 in range(c2 + 1, len(points) - 1, 3):
-                for c4 in range(c3 + 1, len(points) - 1, 3):
+        for c2 in range(c1 + 1, len(points) - 1, skip):
+            for c3 in range(c2 + 1, len(points) - 1, skip):
+                for c4 in range(c3 + 1, len(points) - 1, skip):
                     corner_1 = points[c1]
                     corner_2 = points[c2]
                     corner_3 = points[c3]
@@ -166,23 +169,22 @@ def find_rectangular_polygon(points, right_angle_limit = 5):
                         max_area = area
     return max_corners
 
-def find_parallelagram(points, right_angle_limit = 2):
 
+def find_parallelagram(points, right_angle_limit=2):
     max_area = 0
     max_corners = []
-    allIndices=[]
+    allIndices = []
     allPairs = []
 
     for c1 in range(len(points)):
         corner_1 = points[c1]
-        for c2 in range(c1,len(points)):
+        for c2 in range(c1, len(points)):
             corner_2 = points[c2]
             dx = corner_2[0, 0] - corner_1[0, 0]
             dy = corner_2[0, 1] - corner_1[0, 1]
 
             allPairs.append([dx, dy])
             allIndices.append([c1, c2])
-
 
     minPairDist = 1000
     minPairIndices = [-1, -1]
@@ -191,10 +193,10 @@ def find_parallelagram(points, right_angle_limit = 2):
         for p2, pair2 in enumerate(allPairs):
             if p1 == p2:
                 continue
-            #dist = np.sqrt((pair2[0]-pair1[0])*(pair2[0]-pair1[0]) + (pair2[1]-pair1[1])*(pair2[1]-pair1[1]))
+            # dist = np.sqrt((pair2[0]-pair1[0])*(pair2[0]-pair1[0]) + (pair2[1]-pair1[1])*(pair2[1]-pair1[1]))
 
-            dist = np.abs(pair1[0]/pair1[1]-pair2[0]/pair2[1])
-            #dist = (pair2[0]-pair1[0]) + (pair2[1]-pair1[1])
+            dist = np.abs(pair1[0] / pair1[1] - pair2[0] / pair2[1])
+            # dist = (pair2[0]-pair1[0]) + (pair2[1]-pair1[1])
 
             p0s = allIndices[p1]
             p1s = allIndices[p2]
@@ -203,14 +205,14 @@ def find_parallelagram(points, right_angle_limit = 2):
             i3 = p1s[0]
             i4 = p1s[1]
 
-            if i1 == i2 or i1 == i3 or i1==i4 or i2==i3 or i2 == i4 or i3==i4:
+            if i1 == i2 or i1 == i3 or i1 == i4 or i2 == i3 or i2 == i4 or i3 == i4:
                 continue
 
             if dist < minPairDist:
                 minPairDist = dist
                 minPairIndices = [allIndices[p1], allIndices[p2]]
 
-    #max_corners =
+    # max_corners =
 
     minPair0 = minPairIndices[0]
     minPair1 = minPairIndices[1]
@@ -226,7 +228,6 @@ def find_parallelagram(points, right_angle_limit = 2):
 
     parallelogram = (p1, p2, p3, p4)
     return parallelogram
-
 
 
 def main():
