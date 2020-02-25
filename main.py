@@ -1,7 +1,7 @@
 import cv2 as cv
 import numpy as np
 from pathlib import Path
-
+from decimal import Decimal
 
 def resize(img):
     return cv.resize(img, (810, 1080))
@@ -107,6 +107,88 @@ def get_corners(piece_contour, length=5, extrema_limit=0.5):
     return extrema_points
 
 
+def find_straight_edges(piece_contour, tolerance=50):
+    corners = get_corners(piece_contour, length=8, extrema_limit=0.0999)
+    rectangle_corners = find_rectangular_polygon(corners)
+    edges = []
+
+    for c in range(len(rectangle_corners) - 1):
+        corner = rectangle_corners[c]
+        next_corner = rectangle_corners[c + 1]
+        m, c = lin_equ(corner[1][0], next_corner[1][0])
+        is_straight = True
+        for c2 in range(corner[0] + 1, next_corner[0] - 1):
+            corner_2 = corners[c2]
+            if is_within_tolerance(corner_2, m, c, tolerance):
+                is_straight = False
+                break
+        if is_straight:
+            on = False
+            for point in piece_contour:
+                if point[0][0] == corner[1][0][0] and point[0][1] == corner[1][0][1]:
+                    on = True
+                if point[0][0] == next_corner[1][0][0] and point[0][1] == next_corner[1][0][1]:
+                    on = False
+                if on:
+                    edges.append(point)
+    is_straight = True
+    m, c = lin_equ(rectangle_corners[0][1][0], rectangle_corners[-1][1][0])
+
+    for i in range(0, rectangle_corners[0][0]):
+        corner = corners[i]
+        if is_within_tolerance(corner, m, c, tolerance):
+            is_straight = False
+            break
+    for i in range(rectangle_corners[-1][0], len(corners) - 1):
+        corner = corners[i]
+        if is_within_tolerance(corner, m, c, tolerance):
+            is_straight = False
+            break
+    if is_straight:
+        on = True
+        for point in piece_contour:
+            if point[0][0] == rectangle_corners[0][1][0][0] and point[0][1] == rectangle_corners[0][1][0][1]:
+                on = False
+            elif point[0][0] == rectangle_corners[-1][1][0][0] and point[0][1] == rectangle_corners[-1][1][0][1]:
+                on = True
+            if on:
+                edges.append(point)
+
+    return edges
+
+
+def is_within_tolerance(corner, m, c, tolerance):
+    #if np.abs(m) > 25:
+    # return calculate_distance(corner[0][0], corner[0][1], lin_fy(corner[0][1], m, c), corner[0][1]) > tolerance
+    #else:
+    return calculate_distance(corner[0][0], corner[0][1], corner[0][0], lin_fx(corner[0][0], m, c)) > tolerance
+
+
+def calculate_distance(x1, y1, x2, y2):
+    dist = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+    return dist
+
+
+def lin_fx(x, m, c):
+    return (x * m) + c
+
+
+def lin_fy(y, m, c):
+    return y - (c * m)
+
+
+def lin_equ(l1, l2):
+    """Line encoded as l=(x,y)."""
+    m = (l2[1] - l1[1]) / (l2[0] - l1[0])
+    c = (l2[1] - (m * l2[0]))
+    return m, c
+
+
+def slope(x1, y1, x2, y2):
+    m = (y2 - y1) / (x2 - x1)
+    return m
+
+
 def polygon_area(corners):
     n = len(corners)  # of corners
     area = 0.0
@@ -165,7 +247,7 @@ def find_rectangular_polygon(points, right_angle_limit=5, skip=3):
                     corners = [corner_1[0], corner_2[0], corner_3[0], corner_4[0]]
                     area = polygon_area(corners)
                     if area > max_area and check_right_angle(corners, right_angle_limit):
-                        max_corners = [corner_1, corner_2, corner_3, corner_4]
+                        max_corners = [[c1, corner_1], [c2, corner_2], [c3, corner_3], [c4, corner_4]]
                         max_area = area
     return max_corners
 
@@ -234,13 +316,15 @@ def main():
     for img_path in (Path.cwd() / 'imgs' / 'flipped').glob("*.jpg"):
         img = cv.imread(str(img_path))
         pieces = get_pieces(img)
-        corners = [c for p in pieces for c in get_corners(p, length=8, extrema_limit=0.0999)]
+        # corners = [c for p in pieces for c in get_corners(p, length=8, extrema_limit=0.0999)]
+        edges = [c for p in pieces for c in find_straight_edges(p)]
 
         # pegs = get_pegs(img)
         # cv.imshow('pegs?', resize(pegs))
 
         cv.drawContours(img, [cnt for p in pieces for cnt in p], -1, (255, 0, 0), thickness=2)
-        cv.drawContours(img, corners, -1, (0, 255, 0), thickness=20)
+        # cv.drawContours(img, corners, -1, (0, 255, 0), thickness=20)
+        cv.drawContours(img, edges, -1, (0, 255, 0), thickness=20)
         cv.imshow('corners?', resize(img))
         while True:
             k = cv.waitKey(5) & 0xFF
